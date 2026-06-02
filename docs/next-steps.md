@@ -1,5 +1,17 @@
 # Resume runbook — P3 (`strongs_for_verse`) + P4 (registration)
 
+> **✅ DONE 2026-06-02 — v1 is complete; P3, P4, and P5 all shipped.** This
+> runbook is kept as a record of the plan. **Two things differed from the plan
+> in execution:** (1) the kaiserlik data was much messier than assumed —
+> per-book files mismatch their contents (`1Ch.json` repeats 1 Chronicles ~16×),
+> some concatenate extra books, and `bg`/`ch`/`sp` have unescaped quotes that
+> break strict JSON — so the parser regex-extracts `(verse-key, en)` pairs and
+> **dedups by verse key** (and strips `<em>`/`[[…]]`/`[fn]` markup). (2) The P4
+> substrate plan below assumed a **host bridge + `.exe`**; the bridge is actually
+> **in Docker** — strongs is cross-compiled into the bridge image and the seed
+> applies via the **migration ledger** (`stewards-cli migrate`), not a manual
+> registry insert. See `.mind/active.md` v1-complete banner for the full story.
+
 Executable handoff so a fresh context finishes the build without re-deriving.
 **Done so far:** P0 scaffold · P1 dual lexicon (`data/strongs-lexicon.json.gz`,
 19,570 entries) · P2 `strongs_define` + `strongs_search` (working, smoke-tested).
