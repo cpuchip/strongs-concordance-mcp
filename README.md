@@ -64,9 +64,9 @@ The same stdio binary serves both consumers:
 - **P0** — scaffold (module, dirs, this README). ✅
 - **P1** — lexicon data pipeline: fetch openscriptures/strongs + STEPBible TBESH/TBESG -> unified `data/strongs-lexicon.json.gz` (19,570 entries). ✅
 - **P2** — `strongs_define` + `strongs_search` over the lexicon. Smoke-tested. ✅
-- **P3** — KJV tagging pipeline (kaiserlik) + **validation pass** -> `data/kjv-strongs.json.gz`; `strongs_for_verse`. Smoke test.
-- **P4** — register in both spaces (`.mcp.json` + `stewards.mcp_servers` seed SQL + grants).
-- **P5** — README usage finalize + validation notes.
+- **P3** — KJV tagging pipeline (kaiserlik) + **validation pass** -> `data/kjv-strongs.json.gz` (31,102 verses, 66 books); `strongs_for_verse`. Smoke-tested. ✅
+- **P4** — registered in both spaces: `.mcp.json` (Claude Code) + the bridge image + `stewards.mcp_servers` seed (`strongs1-mcp-seed.sql`) with study/lesson/talk grants, live-verified via `compose_tools`. ✅
+- **P5** — README usage + `data/ATTRIBUTION.md`. ✅
 
 ## Build & run
 
@@ -78,12 +78,35 @@ GOWORK=off go build -o strongs-mcp ./cmd/strongs-mcp
 ```
 
 This is a standalone module deliberately outside the parent workspace's
-`go.work`, so builds use `GOWORK=off`. The lexicon is embedded in the binary
-(`embed.go`), so it runs self-contained from any working directory.
+`go.work`, so builds use `GOWORK=off`. The lexicon + KJV tagging are embedded
+in the binary (`embed.go`), so it runs self-contained from any working
+directory.
+
+## Usage
+
+Once registered (see "One binary, two homes"), the three tools are called like
+any MCP tool. Examples of what they return:
+
+- **`strongs_define`** `{ "number": "H2617" }` → *chêçêd* (kindness; lovingkindness;
+  mercy), with Strong's 1890 definition + KJV-usage gloss + derivation, and the
+  STEPBible modern gloss/definition side by side.
+- **`strongs_search`** `{ "word": "charity" }` → the Strong's numbers KJV renders
+  "charity" (e.g. G26 *agápē*, G1654 *eleēmosynē*), ranked, with brief glosses.
+- **`strongs_for_verse`** `{ "reference": "John 3:16" }` → the verse text plus the
+  word-by-word tagging: `loved → G25 agapáō (to love)`, `world → G2889 kósmos`, …
+  The book may be a full name, an abbreviation, or a common alias ("Jn", "Ps",
+  "Song of Solomon", "1 Jn"). KJV only.
 
 ## Status
 
-v1 in progress (P0–P2 done: the dual lexicon + `strongs_define`/`strongs_search` work). Spec ratified 2026-06-02 (dual lexicon · `for_verse` in v1 via validated KJV tagging · full build). Part of the scripture-study canon-walk toolchain — built ahead of the Old Testament walk. Remaining: `strongs_for_verse` (P3, with the kaiserlik validation pass) + registration in both spaces (P4).
+**v1 complete (P0–P5).** Dual lexicon (`strongs_define` / `strongs_search`, 19,570
+entries) + KJV word-by-word tagging (`strongs_for_verse`, 31,102 verses / 66
+books, validated). Spec ratified 2026-06-02 (dual lexicon · `for_verse` in v1 via
+validated KJV tagging · full build). Registered in both consumers — Claude Code
+(`.mcp.json`) and pg-ai-stewards (bridge image + `stewards.mcp_servers`, granted
+to the study/lesson/talk agents). Part of the scripture-study canon-walk
+toolchain, built ahead of the Old Testament walk. Planned v2+: `strongs_occurrences`
+(every verse a lemma appears in).
 
 ## License
 
