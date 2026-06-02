@@ -30,3 +30,7 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Upstream data sources fetched for the build pipeline (not committed; only the
+# normalized data/*.json.gz outputs are committed).
+.sources/
