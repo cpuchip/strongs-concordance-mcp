@@ -62,15 +62,28 @@ The same stdio binary serves both consumers:
 ## Build phases
 
 - **P0** — scaffold (module, dirs, this README). ✅
-- **P1** — lexicon data pipeline: fetch openscriptures/strongs + STEPBible TBESH/TBESG -> unified `data/strongs-lexicon.json.gz`.
-- **P2** — `strongs_define` + `strongs_search` over the lexicon. Smoke test.
+- **P1** — lexicon data pipeline: fetch openscriptures/strongs + STEPBible TBESH/TBESG -> unified `data/strongs-lexicon.json.gz` (19,570 entries). ✅
+- **P2** — `strongs_define` + `strongs_search` over the lexicon. Smoke-tested. ✅
 - **P3** — KJV tagging pipeline (kaiserlik) + **validation pass** -> `data/kjv-strongs.json.gz`; `strongs_for_verse`. Smoke test.
 - **P4** — register in both spaces (`.mcp.json` + `stewards.mcp_servers` seed SQL + grants).
 - **P5** — README usage finalize + validation notes.
 
+## Build & run
+
+```sh
+GOWORK=off go run ./cmd/build-data        # regenerate data/*.json.gz from .sources/
+GOWORK=off go build -o strongs-mcp ./cmd/strongs-mcp
+./strongs-mcp -stats                       # sanity: prints entry count
+./strongs-mcp                              # serve MCP over stdio
+```
+
+This is a standalone module deliberately outside the parent workspace's
+`go.work`, so builds use `GOWORK=off`. The lexicon is embedded in the binary
+(`embed.go`), so it runs self-contained from any working directory.
+
 ## Status
 
-v1 in progress. Spec ratified 2026-06-02 (dual lexicon · `for_verse` in v1 via validated KJV tagging · full build). Part of the scripture-study canon-walk toolchain — built ahead of the Old Testament walk.
+v1 in progress (P0–P2 done: the dual lexicon + `strongs_define`/`strongs_search` work). Spec ratified 2026-06-02 (dual lexicon · `for_verse` in v1 via validated KJV tagging · full build). Part of the scripture-study canon-walk toolchain — built ahead of the Old Testament walk. Remaining: `strongs_for_verse` (P3, with the kaiserlik validation pass) + registration in both spaces (P4).
 
 ## License
 
