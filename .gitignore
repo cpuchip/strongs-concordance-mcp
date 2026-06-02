@@ -34,3 +34,6 @@ go.work.sum
 # Upstream data sources fetched for the build pipeline (not committed; only the
 # normalized data/*.json.gz outputs are committed).
 .sources/
+
+# Harness-local agent state
+.claude/
