@@ -11,3 +11,9 @@ import _ "embed"
 //
 //go:embed data/strongs-lexicon.json.gz
 var LexiconGZ []byte
+
+// KJVGZ is the gzipped JSON KJV verse tagging (kaiserlik), shaped as
+// abbrev -> chapter -> verse -> {text, words[]}. Built by cmd/build-data.
+//
+//go:embed data/kjv-strongs.json.gz
+var KJVGZ []byte

@@ -29,14 +29,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load embedded lexicon: %v", err)
 	}
+	verses, err := concordance.LoadVerses(strongs.KJVGZ)
+	if err != nil {
+		log.Fatalf("failed to load embedded KJV tagging: %v", err)
+	}
 
 	if *showStats {
-		fmt.Printf("strongs-concordance-mcp: %d lexicon entries loaded\n", lex.Count())
+		fmt.Printf("strongs-concordance-mcp: %d lexicon entries, %d tagged KJV verses loaded\n", lex.Count(), verses.Count())
 		return
 	}
 
-	log.Printf("strongs-concordance-mcp: %d lexicon entries loaded; serving on stdio", lex.Count())
-	srv := mcpserver.New(lex)
+	log.Printf("strongs-concordance-mcp: %d lexicon entries, %d KJV verses loaded; serving on stdio", lex.Count(), verses.Count())
+	srv := mcpserver.New(lex, verses)
 	if err := srv.Serve(); err != nil {
 		log.Fatalf("server error: %v", err)
 	}

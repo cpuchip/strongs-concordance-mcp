@@ -12,20 +12,21 @@ import (
 	"github.com/cpuchip/strongs-concordance-mcp/internal/concordance"
 )
 
-// Server wraps the MCP server and the lexicon.
+// Server wraps the MCP server, the lexicon, and the KJV verse tagging.
 type Server struct {
-	mcp *server.MCPServer
-	lex *concordance.Lexicon
+	mcp    *server.MCPServer
+	lex    *concordance.Lexicon
+	verses *concordance.Verses
 }
 
 // New builds an MCP server exposing the Strong's tools.
-func New(lex *concordance.Lexicon) *Server {
+func New(lex *concordance.Lexicon, verses *concordance.Verses) *Server {
 	m := server.NewMCPServer(
 		"strongs-concordance-mcp",
 		"0.1.0",
 		server.WithToolCapabilities(true),
 	)
-	s := &Server{mcp: m, lex: lex}
+	s := &Server{mcp: m, lex: lex, verses: verses}
 	s.register()
 	return s
 }
@@ -57,6 +58,17 @@ func (s *Server) register() {
 			),
 		),
 		s.handleSearch,
+	)
+
+	s.mcp.AddTool(
+		mcp.NewTool("strongs_for_verse",
+			mcp.WithDescription("Given a KJV verse reference (e.g. \"John 3:16\", \"Genesis 1:1\", \"1 John 4:8\"), return the verse text and its word-by-word Strong's tagging — each KJV word with the Hebrew/Greek number(s) behind it, plus the lemma and a brief gloss. The word-by-word bridge from the English to the original languages. KJV only."),
+			mcp.WithString("reference",
+				mcp.Required(),
+				mcp.Description("A KJV verse reference, e.g. \"John 3:16\" or \"Genesis 1:1\". Book may be a full name, common abbreviation, or alias."),
+			),
+		),
+		s.handleForVerse,
 	)
 }
 
@@ -95,6 +107,57 @@ func (s *Server) handleSearch(_ context.Context, req mcp.CallToolRequest) (*mcp.
 		fmt.Fprintf(&b, "- %s  %s (%s) — %s\n", e.Number, e.Lemma, e.Translit, gloss)
 	}
 	return mcp.NewToolResultText(b.String()), nil
+}
+
+func (s *Server) handleForVerse(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	ref, err := req.RequireString("reference")
+	if err != nil {
+		return mcp.NewToolResultError("reference parameter is required (e.g. \"John 3:16\")"), nil
+	}
+	abbr, ch, vs, ok := concordance.ResolveRef(ref)
+	if !ok {
+		return mcp.NewToolResultText(fmt.Sprintf("Could not parse %q as a KJV verse reference. Use a form like \"John 3:16\" or \"Genesis 1:1\".", ref)), nil
+	}
+	verse, ok := s.verses.ForVerse(abbr, ch, vs)
+	if !ok {
+		return mcp.NewToolResultText(fmt.Sprintf("No KJV verse found for %q (resolved to %s %s:%s). Note: KJV only.", ref, abbr, ch, vs)), nil
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s %s:%s (KJV)\n%s\n\nWord-by-word (Strong's):\n", abbr, ch, vs, verse.Text)
+	for _, w := range verse.Words {
+		if len(w.S) == 0 {
+			continue // untagged function words (e.g. "In", "the") — skip the list
+		}
+		fmt.Fprintf(&b, "  %s — ", w.W)
+		for i, num := range w.S {
+			if i > 0 {
+				b.WriteString("; ")
+			}
+			if e, ok := s.lex.Define(num); ok {
+				fmt.Fprintf(&b, "%s %s", num, e.Lemma)
+				if e.Translit != "" {
+					fmt.Fprintf(&b, " (%s)", e.Translit)
+				}
+				if g := briefGloss(e); g != "" {
+					fmt.Fprintf(&b, " — %s", g)
+				}
+			} else {
+				b.WriteString(num)
+			}
+		}
+		b.WriteString("\n")
+	}
+	return mcp.NewToolResultText(b.String()), nil
+}
+
+// briefGloss returns the shortest useful sense for a lexicon entry: STEPBible
+// gloss first (it's the curated modern one-liner), else the KJV-usage gloss.
+func briefGloss(e *concordance.Entry) string {
+	if e.StepGloss != "" {
+		return e.StepGloss
+	}
+	return e.KJVDef
 }
 
 func formatEntry(e *concordance.Entry) string {
